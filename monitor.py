@@ -47,7 +47,6 @@ class ContainerStatsThread(threading.Thread):
             for dev, devstats in stats['networks'].items():
                 for statname,value in devstats.items():
                     log_metric('net_'+statname, metric_labels, value, {'network_interface': dev})
-            self.stop.wait(refresh_interval)
 
 
 

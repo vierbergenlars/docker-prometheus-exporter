@@ -29,6 +29,14 @@ def calculate_cpu_usage(stats, metric):
         return cpu_delta / system_delta
     return 0.0
 
+def calculate_blkio(stats, metric, op):
+    val = 0
+    for blkstat in stats['blkio_stats'][metric]:
+        if blkstat['op'].lower() == op.lower():
+            val += blkstat['value']
+    return val
+
+
 class ContainerStatsThread(threading.Thread):
     def __init__(self, container_id):
         super().__init__(name='Stats#'+container_id, daemon=True)
@@ -59,6 +67,10 @@ class ContainerStatsThread(threading.Thread):
             for dev, devstats in stats['networks'].items():
                 for statname,value in devstats.items():
                     log_metric('net_'+statname, metric_labels, value, {'network_interface': dev})
+
+            for typ in ['read', 'write', 'sync', 'async', 'total']:
+                log_metric('io_bytes_'+typ, metric_labels, calculate_blkio(stats, 'io_service_bytes_recursive', typ))
+                log_metric('io_ops_'+typ, metric_labels, calculate_blkio(stats, 'io_serviced_recursive', typ))
 
 
 

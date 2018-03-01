@@ -91,7 +91,7 @@ def get_container_metric_labels(container):
         'name': container.name,
     }
     for label in expose_labels:
-        base['label_'+label.replace('.', '_')] = container.labels[label]
+        base['label_'+label.replace('.', '_')] = container.labels.get(label, '')
     return base
 
 stats_threads = {}

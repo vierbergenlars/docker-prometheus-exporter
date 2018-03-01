@@ -17,6 +17,18 @@ labels = ['name', ] + ['label_'+l.replace('.', '_') for l in expose_labels]
 refresh_interval = int(os.environ.get('REFRESH_INTERVAL', 10))
 metrics = {}
 
+def calculate_cpu_usage(stats, metric):
+    try:
+        cpu_delta = stats['cpu_stats']['cpu_usage'][metric] - stats['precpu_stats']['cpu_usage'][metric]
+        system_delta = stats['cpu_stats']['system_cpu_usage'] - stats['precpu_stats']['system_cpu_usage']
+    except KeyError:
+        logging.exception('Error calculating cpu usage')
+        return 0.0
+
+    if system_delta > 0 and cpu_delta > 0:
+        return cpu_delta / system_delta
+    return 0.0
+
 class ContainerStatsThread(threading.Thread):
     def __init__(self, container_id):
         super().__init__(name='Stats#'+container_id, daemon=True)
@@ -38,9 +50,9 @@ class ContainerStatsThread(threading.Thread):
                 logging.info('Stopped statistics thread for %s', container.id)
                 return
             log_metric('pids', metric_labels, stats['pids_stats']['current'])
-            log_metric('cpu_usage_total', metric_labels, stats['cpu_stats']['cpu_usage']['total_usage'])
-            log_metric('cpu_usage_system', metric_labels, stats['cpu_stats']['cpu_usage']['usage_in_kernelmode'])
-            log_metric('cpu_usage_user', metric_labels, stats['cpu_stats']['cpu_usage']['usage_in_usermode'])
+            log_metric('cpu_usage_total', metric_labels, calculate_cpu_usage(stats, 'total_usage'))
+            log_metric('cpu_usage_system', metric_labels, calculate_cpu_usage(stats, 'usage_in_kernelmode'))
+            log_metric('cpu_usage_user', metric_labels, calculate_cpu_usage(stats, 'usage_in_usermode'))
             log_metric('memory_usage', metric_labels, stats['memory_stats']['usage'])
             log_metric('memory_usage_max', metric_labels, stats['memory_stats']['max_usage'])
             log_metric('memory_limit', metric_labels, stats['memory_stats']['limit'])
@@ -59,6 +71,7 @@ def get_metric(name, extra_labels):
         return metrics[name]
 
 def log_metric(name, labels, value, extra_labels={}):
+    logging.debug('Publish metric %s, %r, %r', name, labels, value)
     get_metric(name, extra_labels).labels(**labels, **extra_labels).set(value)
 
 def get_container_metric_labels(container):

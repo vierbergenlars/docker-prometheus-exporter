@@ -12,7 +12,7 @@ prometheus_client.start_http_server(8080)
 monitor_label = os.environ.get('MONITOR_LABEL', 'be.vbgn.prometheus-docker-exporter')
 prometheus_prefix = os.environ.get('STATS_PREFIX', 'docker_container_')
 
-expose_labels = [l.trim() for l in os.environ.get('EXPOSE_LABELS', '').split(',') if l != '']
+expose_labels = [l.strip() for l in os.environ.get('EXPOSE_LABELS', '').split(',') if l != '']
 labels = ['name', ] + ['label_'+l.replace('.', '_') for l in expose_labels]
 refresh_interval = int(os.environ.get('REFRESH_INTERVAL', 10))
 metrics = {}
